@@ -1,79 +1,71 @@
-;----------;----------;
-;1.工艺规则变量化
-	;
-;2.增加UI交互
-	;
-;3.兼容IC51
-	;
-;----------2019-11-14----------;
-;1.可选掺杂类型等√
-	;"P"为PSD;"N"为NSD;"NW"为NW;	
-;2.掺杂切换参数输入类型同兼容symbol和string类型√
-	;可以输入"P",也可以输入'P;	
-;3.命令模式下自动识别输入参数为contact排数还是DIFF宽度√
-	;输入整数位contact排数;输入浮点数为DIFF宽度,单位um;	
-;4.增加规则切换√
-	;默认匹配4x4阵列contact的规则;输入"min"或'min则在小于4排孔的时候使用最小规则;	
-;5.MPP模板自动命名√
-	;模板命名格式为"掺杂类型_Tap_contact排数row或DIFF宽度um"_规则;	
-;----------;----------;
+hiSetBindKey("Layout" "<Key>1" "MPP_UI()")
 
-procedure(MPP()
-	prog((DIFF_type arg_input rule)
+;UI界面
+procedure(MPP_UI()
+	prog((active_type arg_type arg_input rule)
+		cancelEnterFun()
 		hiCreateAppForm(
-			?name 'MPP_UI
+			?name 'MPP_APP
 			?fields list(
 						hiCreateCyclicField(
-							?name 'DIFF_type
-							?prompt "DIFF type"
+							?name 'active_type
+							?prompt "Active type"
 							?choices list("P" "N" "NW")
 						)
-					
+						hiCreateCyclicField(
+							?name 'arg_type
+							?prompt "Arg type"
+							?choices list("row_num" "width_num")
+						)
 						hiCreateFloatField(
 							?name 'arg_input
 							?prompt "Arg input"
-							?value 0.5
+							?value 1.0
 						)
-	
 						hiCreateCyclicField(
 							?name 'rule
 							?prompt "Rule options"
 							?choices list("min" "max")
 						)
 					)
-			?formTitle "Create MPP Template"
+			?formTitle "Create MPP"
 		)
 
-		hiDisplayForm('MPP_UI)
-		DIFF_type = MPP_UI -> DIFF_type -> value
-		arg_input = MPP_UI -> arg_input -> value
-		rule = MPP_UI -> rule -> value
-
-;		return(list(DIFF_type arg_input rule))
+		hiDisplayForm('MPP_APP)
+		active_type = MPP_APP -> active_type -> value
+		arg_input = MPP_APP -> arg_input -> value
+		rule = MPP_APP -> rule -> value
+		arg_type = MPP_APP -> arg_type -> value
 		
-		create_MPP(DIFF_type arg_input rule)
+		println(active_type)
+		println(arg_input)
+		println(rule)
+		println(arg_type)
+		
+		MPP(active_type arg_input rule arg_type)
 	)
-)
+);MPP_UI
 
-procedure(create_MPP(DIFF_type arg_input @rest rule)
-	prog((techID tech_lib contact_row contact_list DIFF_width enc_sub_list contacts_type)
+;MPP主函数
+procedure(MPP(active_type arg_input @optional (rule "min") (arg_type "unlock"))
+	prog((techID tech_lib contact_row contact_list active_width enc_sub_list contacts_type CONTACT_space_min CONTACT_space_max CONTACT_space)
 		
 		;CONTACT = ""
-		;DIFF = ""
+		;active = ""
 		;PPLUS = ""
 		;NPLUS = ""
 		;NWELL = ""
 		;CONTACT_width = 
-		;CONTACT_space_min = 
-		;CONTACT_space_max = 
-		;CONTACT_enclosure_DIFF = 
-		;DIFF_enclosure_PLUS = 
-		;DIFF_enclosure_NWELL = 
-		;CONTACT_enclosure_METAL = CONTACT_enclosure_DIFF
-		;DIFF_enclosure_PPLUS = DIFF_enclosure_PLUS
-		;DIFF_enclosure_NPLUS = DIFF_enclosure_PLUS
+		CONTACT_space_min = 0.162
+		CONTACT_space_max = 0.180
+		;CONTACT_enc_active = 
+		;active_enc_PLUS = 
+		;active_enc_NWELL = 
+		;CONTACT_enc_METAL = CONTACT_enc_active
+		;active_enc_PPLUS = active_enc_PLUS
+		;active_enc_NPLUS = active_enc_PLUS
 		
-		
+		;获取techID
 		tech_lib = "hl110lpf"
 		techID = techGetTechFile(ddGetObj(tech_lib))
 		if(techID == nil then
@@ -81,50 +73,75 @@ procedure(create_MPP(DIFF_type arg_input @rest rule)
 			return(nil)
 		)
 		
-		if(rule == nil then
-			rule = "max"
-			else
-				rule = car(rule)
-		)
-		
-		sprintf(DIFF_type "%s" DIFF_type)
+		;输入参数格式化
+		sprintf(active_type "%s" active_type)
 		sprintf(rule "%s" rule)
+		sprintf(arg_type "%s" arg_type)
 		sprintf(arg_input_type "%s" type(arg_input))
 		
+		;判断强制规则
+		if(rule == "min" then
+			CONTACT_space = CONTACT_space_min
+			else
+				CONTACT_space = CONTACT_space_max
+		)
+		
+		;UI模式下 row & width 判断
 		cond(
-			(arg_input_type == "fixnum"
-				contact_row = arg_input
-				DIFF_width = cadr(contact_DIFF_width_list_func(contact_row rule))
-				MPP_name = strcat(DIFF_type "_Tap_" sprintf(nil "%d" contact_row) "_row")
-			)
-			(arg_input_type == "flonum"
-				DIFF_width = arg_input
-				cond(rule == "min"
-					(
-					contact_row = fix((DIFF_width + 0.162 - 0.126)/(0.162 + 0.144))
+			(arg_type == "unlock"
+				
+				;整数 & 浮点 判断
+				cond(
+					(arg_input_type == "fixnum"
+						contact_row = arg_input
+						active_width = cadr(contact_active_width_list_func(contact_row CONTACT_space CONTACT_space_max))
+						MPP_name = strcat(active_type "_Tap_" sprintf(nil "%d" contact_row) "_row")
+					)
+					(arg_input_type == "flonum"
+						active_width = arg_input
+						contact_row = fix((active_width + CONTACT_space - 0.063 * 2)/(CONTACT_space + 0.144))
+						MPP_name = strcat(active_type "_Tap_" sprintf(nil "%0.3f" active_width) "_um")
+					)
+					(t
+						println("error!_arg_input_type_")
+						return(nil)
 					)
 				)
-				contact_row = fix((DIFF_width + 0.18 - 0.126)/(0.18 + 0.144))
-				MPP_name = strcat(DIFF_type "_Tap_" sprintf(nil "%f" DIFF_width) "_um")
+			)
+			(arg_type == "row_num"
+				contact_row = fix(arg_input)
+				active_width = cadr(contact_active_width_list_func(contact_row CONTACT_space CONTACT_space_max))
+				MPP_name = strcat(active_type "_Tap_" sprintf(nil "%d" contact_row) "_row")
+			)
+			(arg_type == "width_num"
+				active_width = arg_input
+				contact_row = fix((active_width + CONTACT_space - 0.063 * 2)/(CONTACT_space + 0.144))
+				if(arg_input_type == "fixnum" then
+					MPP_name = strcat(active_type "_Tap_" sprintf(nil "%d.000" active_width) "_um")
+					else
+						MPP_name = strcat(active_type "_Tap_" sprintf(nil "%0.3f" active_width) "_um")
+				)
 			)
 			(t
-				println("error!_arg_input_type_")
+				println("error!_arg_type_")
 				return(nil)
 			)
 		)
 		
+		;参数化信息产生
+		contact_list = car(contact_active_width_list_func(contact_row CONTACT_space CONTACT_space_max))
+		enc_sub_list = enc_sub_list_func(active_type)
 		
-		contact_list = car(contact_DIFF_width_list_func(contact_row rule))
-		enc_sub_list = enc_sub_list_func(DIFF_type)
+		;输入信息并创建MPP模板
+		create_MPP_Template(techID MPP_name active_width enc_sub_list contact_list)
 		
-		create_MPP_Template(techID MPP_name DIFF_width enc_sub_list contact_list)
-		
-		leRodMppForm ~> rodMPPTemplate ~> value = MPP_name
 		leSetEntryLayer(list("DIFF" "drawing"))
+		leRodMppForm ~> rodMPPTemplate ~> value = MPP_name
 		lxHiCreateMPP()
 	);prog
-);procedure(create_MPP)
+);MPP
 
+;CONTACT信息格式
 procedure(contact_row(row_sep)
 	list(
 		?layer	 list("CONT" "drawing")
@@ -133,15 +150,16 @@ procedure(contact_row(row_sep)
 		?choppable	 t
 		?sep	 row_sep
 		?justification	 "center"
-		?space	 0.18
+		?space	 0.180
 		?beginOffset	 -0.090000
 		?endOffset	 -0.090000
 		?beginSegOffset	 0.090000
 		?endSegOffset	 0.090000
 		?gap	 "distribute"
 	)
-)
+);contact_row
 
+;注入层信息格式
 procedure(enc_sub_layer(layer enc_space)
 	list(
 		?layer	 list(layer "drawing")
@@ -150,50 +168,46 @@ procedure(enc_sub_layer(layer enc_space)
 		?beginOffset	 enc_space
 		?endOffset	 enc_space
 	)
-)
+);enc_sub_layer
 
-procedure(contact_DIFF_width_list_func(contact_row rule)
-	prog((cpoy_row contact_list DIFF_width)
+procedure(contact_active_width_list_func(contact_row CONTACT_space CONTACT_space_max)
+	prog((cpoy_row contact_list active_width)
 		cond(
 			(contact_row == 0 
 				println("error!_contacts_value_")
 				return(nil)
 			)
 			
-			(rule == "min"
-				cond(
-					(contact_row == 1
-						contact_list = list(contact_row(0))
-						DIFF_width = 0.27
-					)
-					(contact_row == 2
-						contact_list = list(contact_row(0.153) contact_row(-0.153))
-						DIFF_width = 0.576
-					)
-					(contact_row == 3
-						contact_list = list(contact_row(0) contact_row(0.306) contact_row(-0.306))
-						DIFF_width = 0.882
-					)
-				)
+			(contact_row == 1
+				contact_list = list(contact_row(0))
+				active_width = 0.063 * 2 + 0.144
+			)
+			(contact_row == 2
+				contact_list = list(contact_row((CONTACT_space + 0.144) / 2) contact_row(-(CONTACT_space + 0.144) / 2))
+				active_width = 0.063 * 2 + 0.144 * 2 + CONTACT_space
+			)
+			(contact_row == 3
+				contact_list = list(contact_row(0) contact_row((CONTACT_space + 0.144)) contact_row(-(CONTACT_space + 0.144)))
+				active_width = 0.063 * 2 + 0.144 * 3 + CONTACT_space * 2
 			)
 			
+			;CONTACT阵列4x4规则
 			(remainder(contact_row 2) == 0
 				contact_list = list()
 				cpoy_row = contact_row / 2
-				DIFF_width = 0.18 * (contact_row-1) + 0.144 * contact_row + 0.126
+				active_width = CONTACT_space_max * (contact_row-1) + 0.144 * contact_row + 0.063 * 2
 				for(step 1 cpoy_row
-					contact_list = append(contact_list list(contact_row(0.162 * (1 - (2 * step)))))
-					contact_list = append(contact_list list(contact_row(0.162 * ((2 * step) - 1))))
+					contact_list = append(contact_list list(contact_row(((CONTACT_space_max + 0.144) * (2 * step - 1) / 2))))
+					contact_list = append(contact_list list(contact_row(-((CONTACT_space_max + 0.144) * (2 * step - 1) / 2))))
 				)
 			)
-			
 			(remainder(contact_row 2) == 1
 				contact_list = list(contact_row(0))
 				cpoy_row = (contact_row - 1) / 2
-				DIFF_width = 0.18 * (contact_row-1) + 0.144 * contact_row + 0.126
+				active_width = CONTACT_space_max * (contact_row-1) + 0.144 * contact_row + 0.063 * 2
 				for(step 1 cpoy_row
-					contact_list = append(contact_list list(contact_row(0.324 * step)))
-					contact_list = append(contact_list list(contact_row(-0.324 * step)))
+					contact_list = append(contact_list list(contact_row((CONTACT_space_max + 0.144) * step)))
+					contact_list = append(contact_list list(contact_row(-(CONTACT_space_max + 0.144) * step)))
 				)
 			)
 			
@@ -202,39 +216,41 @@ procedure(contact_DIFF_width_list_func(contact_row rule)
 				return(nil)
 			)
 		)
-		return(list(contact_list DIFF_width))
+		return(list(contact_list active_width))
 	);prog
-);contact_DIFF_width_list_func
+);contact_active_width_list_func
 
-procedure(enc_sub_list_func(DIFF_type)
-	prog((enc_sub_layer enc_sub_layer)
+;注入层列表信息产生
+procedure(enc_sub_list_func(active_type)
+	prog((enc_sub_list)
 		cond(
-			(DIFF_type == "P"
+			(active_type == "P"
 				enc_sub_list = list(enc_sub_layer("PSD" 0.027))				
 			)
-			(DIFF_type == "N"
+			(active_type == "N"
 				enc_sub_list = list(enc_sub_layer("NSD" 0.027))
 			)
 			
-			(DIFF_type == "NW"
+			(active_type == "NW"
 				enc_sub_list = list(enc_sub_layer("NSD" 0.027) enc_sub_layer("NW" 0.234))
 			)
 			
 			(t
-				println("error!_DIFF_type_")
+				println("error!_active_type_")
 			)
 		)
 		return(enc_sub_list)
 	)
 )
 
-procedure(create_MPP_Template(techID MPP_name DIFF_width enc_sub_list contact_list)
+;内置MPP模板函数参数化
+procedure(create_MPP_Template(techID MPP_name active_width enc_sub_list contact_list)
 	prog(()
 		leDefineMPPTemplate(
 			?techId	 techID
 			?name	 MPP_name
 			?layer	 list("DIFF" "drawing")
-			?width	 DIFF_width
+			?width	 active_width
 			?choppable	 nil
 			?endType	 "truncate"
 			?beginExt	 0.000000
@@ -244,7 +260,7 @@ procedure(create_MPP_Template(techID MPP_name DIFF_width enc_sub_list contact_li
 			?offsetSubPath	 list(
 			list(
 				?layer	 list("M1" "drawing")
-				?width	 DIFF_width
+				?width	 active_width
 				?choppable	 t
 				?sep	 0.000000
 				?justification	 "center"
@@ -259,5 +275,5 @@ procedure(create_MPP_Template(techID MPP_name DIFF_width enc_sub_list contact_li
 				contact_list
 				
 		); end of leDefineMPPTemplate procedure
-	)
-)
+	);prog
+);create_MPP_Template

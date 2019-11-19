@@ -28,19 +28,14 @@ procedure(MPP_UI()
 							?choices list("min" "max")
 						)
 					)
-			?formTitle "Create MPP"
+			?formTitle "Create Tap"
 		)
-
+		
 		hiDisplayForm('MPP_APP)
 		active_type = MPP_APP -> active_type -> value
 		arg_input = MPP_APP -> arg_input -> value
 		rule = MPP_APP -> rule -> value
 		arg_type = MPP_APP -> arg_type -> value
-		
-		println(active_type)
-		println(arg_input)
-		println(rule)
-		println(arg_type)
 		
 		MPP(active_type arg_input rule arg_type)
 	)
@@ -51,25 +46,33 @@ procedure(MPP(active_type arg_input @optional (rule "min") (arg_type "unlock"))
 	prog((techID tech_lib contact_row contact_list active_width enc_sub_list contacts_type CONTACT_space_min CONTACT_space_max CONTACT_space)
 		
 		;CONTACT = ""
-		;active = ""
+		;ACTIVE = ""
 		;PPLUS = ""
 		;NPLUS = ""
 		;NWELL = ""
 		;CONTACT_width = 
 		CONTACT_space_min = 0.162
 		CONTACT_space_max = 0.180
-		;CONTACT_enc_active = 
-		;active_enc_PLUS = 
-		;active_enc_NWELL = 
-		;CONTACT_enc_METAL = CONTACT_enc_active
-		;active_enc_PPLUS = active_enc_PLUS
-		;active_enc_NPLUS = active_enc_PLUS
+		;CONTACT_enc_ACTIVE = 
+		;ACTIVE_enc_PLUS = 
+		;ACTIVE_enc_NWELL = 
+		;PACTIVE = ""
+		;NACTIVE = ""
+		;CONTACT_enc_METAL = CONTACT_enc_ACTIVE
+		;ACTIVE_enc_PPLUS = ACTIVE_enc_PLUS
+		;ACTIVE_enc_NPLUS = ACTIVE_enc_PLUS
+		
+		
+		if(arg_input <= 0 then
+			println("Error ! Arg input must be > 0")
+			return(nil)
+		)
 		
 		;获取techID
 		tech_lib = "hl110lpf"
 		techID = techGetTechFile(ddGetObj(tech_lib))
 		if(techID == nil then
-			println("error!_tech_lib_")
+			println("Error !_tech_lib_")
 			return(nil)
 		)
 		
@@ -79,11 +82,16 @@ procedure(MPP(active_type arg_input @optional (rule "min") (arg_type "unlock"))
 		sprintf(arg_type "%s" arg_type)
 		sprintf(arg_input_type "%s" type(arg_input))
 		
+		MPP_name = strcat(active_type "_Tap_")
+		
 		;判断强制规则
-		if(rule == "min" then
-			CONTACT_space = CONTACT_space_min
-			else
+		cond(
+			(rule == "min"
+				CONTACT_space = CONTACT_space_min
+			)
+			(t
 				CONTACT_space = CONTACT_space_max
+			)
 		)
 		
 		;UI模式下 row & width 判断
@@ -95,35 +103,52 @@ procedure(MPP(active_type arg_input @optional (rule "min") (arg_type "unlock"))
 					(arg_input_type == "fixnum"
 						contact_row = arg_input
 						active_width = cadr(contact_active_width_list_func(contact_row CONTACT_space CONTACT_space_max))
-						MPP_name = strcat(active_type "_Tap_" sprintf(nil "%d" contact_row) "_row")
+						MPP_name = strcat(MPP_name sprintf(nil "%d" contact_row) "_row")
 					)
 					(arg_input_type == "flonum"
 						active_width = arg_input
-						contact_row = fix((active_width + CONTACT_space - 0.063 * 2)/(CONTACT_space + 0.144))
-						MPP_name = strcat(active_type "_Tap_" sprintf(nil "%0.3f" active_width) "_um")
+						cond(
+							(arg_input < CONTACT_space_min * 3 + 0.144 * 4 + 0.063 * 2
+								contact_row = fix2((active_width + CONTACT_space - 0.063 * 2)/(CONTACT_space + 0.144))
+							)
+							(t
+								contact_row = fix2((active_width + CONTACT_space_max - 0.063 * 2)/(CONTACT_space_max + 0.144))
+							)
+						)
+						MPP_name = strcat(MPP_name sprintf(nil "%0.3f" active_width) "_um")
 					)
 					(t
-						println("error!_arg_input_type_")
+						println("Error !_arg_input_type_")
 						return(nil)
 					)
 				)
 			)
 			(arg_type == "row_num"
-				contact_row = fix(arg_input)
+				contact_row = fix2(arg_input)
 				active_width = cadr(contact_active_width_list_func(contact_row CONTACT_space CONTACT_space_max))
-				MPP_name = strcat(active_type "_Tap_" sprintf(nil "%d" contact_row) "_row")
+				MPP_name = strcat(MPP_name sprintf(nil "%d" contact_row) "_row")
 			)
 			(arg_type == "width_num"
 				active_width = arg_input
-				contact_row = fix((active_width + CONTACT_space - 0.063 * 2)/(CONTACT_space + 0.144))
-				if(arg_input_type == "fixnum" then
-					MPP_name = strcat(active_type "_Tap_" sprintf(nil "%d.000" active_width) "_um")
-					else
-						MPP_name = strcat(active_type "_Tap_" sprintf(nil "%0.3f" active_width) "_um")
+				cond(
+					(arg_input < CONTACT_space_min * 3 + 0.144 * 4 + 0.063 * 2
+						contact_row = fix2((active_width + CONTACT_space - 0.063 * 2)/(CONTACT_space + 0.144))
+					)
+					(t
+						contact_row = fix2((active_width + CONTACT_space_max - 0.063 * 2)/(CONTACT_space_max + 0.144))
+					)
+				)
+				cond(
+					(arg_input_type == "fixnum"
+						MPP_name = strcat(MPP_name sprintf(nil "%d.000" active_width) "_um")
+					)
+					(t
+						MPP_name = strcat(MPP_name sprintf(nil "%0.3f" active_width) "_um")
+					)
 				)
 			)
 			(t
-				println("error!_arg_type_")
+				println("Error !_arg_type_")
 				return(nil)
 			)
 		)
@@ -132,8 +157,14 @@ procedure(MPP(active_type arg_input @optional (rule "min") (arg_type "unlock"))
 		contact_list = car(contact_active_width_list_func(contact_row CONTACT_space CONTACT_space_max))
 		enc_sub_list = enc_sub_list_func(active_type)
 		
+		if((1 < contact_row) && (contact_row < 4) && (CONTACT_space == CONTACT_space_max) then
+			MPP_name = strcat(MPP_name "_max")
+		)
+		
 		;输入信息并创建MPP模板
 		create_MPP_Template(techID MPP_name active_width enc_sub_list contact_list)
+		
+		println(MPP_name)
 		
 		leSetEntryLayer(list("DIFF" "drawing"))
 		leRodMppForm ~> rodMPPTemplate ~> value = MPP_name
@@ -174,7 +205,7 @@ procedure(contact_active_width_list_func(contact_row CONTACT_space CONTACT_space
 	prog((cpoy_row contact_list active_width)
 		cond(
 			(contact_row == 0 
-				println("error!_contacts_value_")
+				println("Error !_contacts_value_")
 				return(nil)
 			)
 			
@@ -212,7 +243,7 @@ procedure(contact_active_width_list_func(contact_row CONTACT_space CONTACT_space
 			)
 			
 			(t
-				println("error!_contact_list_")
+				println("Error !_contact_list_")
 				return(nil)
 			)
 		)
@@ -236,7 +267,7 @@ procedure(enc_sub_list_func(active_type)
 			)
 			
 			(t
-				println("error!_active_type_")
+				println("Error !_active_type_")
 			)
 		)
 		return(enc_sub_list)

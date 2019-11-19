@@ -1,4 +1,4 @@
-# MPP_tools  
+# MPP_Tap  
 
 基于Skill的一个用于virtuoso的layout插件，用于生成MPP，绘制Tap，正在往最完善的方向优化。  
 本工具是受到了Maxchip的PDK自带工具的齐发，尝试提取他们的代码看看是怎么做的，可以被加密了，没办法想用只能自己做了。  

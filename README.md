@@ -8,7 +8,7 @@
 ;1.增加active最小宽度限制;√  
 	;增加active宽度不得小于单排contact的限制;  
 ;2.优化;√  
-	;优化了几个不规范;例如子程序contact_row()和变量contact_row重名;规范子程序名(encSubPath_func()和subRect_func);  
+	;优化了几个不规范;例如子程序contact_row()和变量contact_row重名;规范子程序名(encSubPath_func()和subRect_func());  
 ;3.工艺信息变量化;√  
 	;Done;  
 ;----------2019-11-19----------;  

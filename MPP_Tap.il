@@ -10,26 +10,26 @@ procedure(MPP(active_type arg_input @optional (rule "min") (arg_type "unlock"))
 			CONTACT_enc_ACTIVE ACTIVE_enc_PLUS ACTIVE_enc_NWELL ACTIVE_enc_PPLUS ACTIVE_enc_NPLUS)
 			
 			
-	;----------;----------;  
-	/**/	tech_lib = "hl110lpf"
-	;----------;----------;  
-	/**/	CONTACT = "CONT"
-	/**/	PACTIVE = "DIFF"
-	/**/	NACTIVE = "DIFF"
-	/**/	PPLUS = "PSD"
-	/**/	NPLUS = "NSD"
-	/**/	NWELL = "NW"
-	/**/	METAL = "M1"
-	;----------;----------;  
-	/**/	CONTACT_width = 0.144
-	/**/	CONTACT_space_min = 0.162
-	/**/	CONTACT_space_max = 0.180
-	/**/	CONTACT_enc_ACTIVE = 0.063
-	/**/	ACTIVE_enc_PLUS = 0.027
-	/**/	ACTIVE_enc_NWELL = 0.234
+	/*--------------------*/  
+	/**/	tech_lib = ""
+	/*--------------------*/  
+	/**/	CONTACT = ""
+	/**/	PACTIVE = ""
+	/**/	NACTIVE = ""
+	/**/	PPLUS = ""
+	/**/	NPLUS = ""
+	/**/	NWELL = ""
+	/**/	METAL = ""
+	/*--------------------*/  
+	/**/	CONTACT_width = 0.000
+	/**/	CONTACT_space_min = 0.000
+	/**/	CONTACT_space_max = 0.000
+	/**/	CONTACT_enc_ACTIVE = 0.000
+	/**/	ACTIVE_enc_PLUS = 0.000
+	/**/	ACTIVE_enc_NWELL = 0.000
 	/**/	ACTIVE_enc_PPLUS = ACTIVE_enc_PLUS
 	/**/	ACTIVE_enc_NPLUS = ACTIVE_enc_PLUS
-	;----------;----------;  
+	/*--------------------*/  
 		
 		
 		;输入参数格式化

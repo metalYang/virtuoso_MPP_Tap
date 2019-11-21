@@ -1,0 +1,5 @@
+procedure(fix22(cv)
+	prog(()
+		return(atoi(sprintf(nil "%f" cv)))
+	)
+)

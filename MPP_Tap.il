@@ -183,9 +183,13 @@ procedure(MPP_UI()
 						)
 					)
 			?formTitle "Create Tap"
+			?buttonLayout	'OKCancel
 		)
 		
-		hiDisplayForm('MPP_APP)
+		unless(hiDisplayForm('MPP_APP)
+			return("cancel create MPP")
+		)
+		
 		active_type = MPP_APP -> active_type -> value
 		arg_input = MPP_APP -> arg_input -> value
 		rule = MPP_APP -> rule -> value

@@ -165,21 +165,24 @@ procedure(MPP_UI()
 							?name 'active_type
 							?prompt "Active type"
 							?choices list("P" "N" "NW")
+							?value nth(0 MPP_UI_last_set)
 						)
 						hiCreateCyclicField(
 							?name 'arg_type
 							?prompt "Arg type"
 							?choices list("rownum" "widthnum")
+							?value nth(1 MPP_UI_last_set)
 						)
 						hiCreateFloatField(
 							?name 'arg_input
 							?prompt "Arg input"
-							?value 1.0
+							?value nth(2 MPP_UI_last_set)
 						)
 						hiCreateCyclicField(
 							?name 'rule
 							?prompt "Rule options"
 							?choices list("min" "max")
+							?value nth(3 MPP_UI_last_set)
 						)
 					)
 			?formTitle "Create Tap"
@@ -191,13 +194,18 @@ procedure(MPP_UI()
 		)
 		
 		active_type = MPP_APP -> active_type -> value
+		arg_type = MPP_APP -> arg_type -> value
 		arg_input = MPP_APP -> arg_input -> value
 		rule = MPP_APP -> rule -> value
-		arg_type = MPP_APP -> arg_type -> value
+		
+		MPP_UI_last_set = list(active_type arg_type arg_input rule)
 		
 		MPP(active_type arg_input rule arg_type)
 	)
 );MPP_UI
+
+;初始化全局变量
+MPP_UI_last_set = list("p" "rowmun" 1.0 "min")
 
 ;单排CONTACT
 procedure(subRect_func(row_sep @optional (layer CONTACT) (CONTACT_width CONTACT_width) (space CONTACT_space_max))
